@@ -2,11 +2,9 @@
 
 A retro pink desktop birthday experience made for Tishtaa.
 
-## Live site
+## Deploy on Netlify
 
-https://architj0911.github.io/her-birthday-/
-
-The site is built and deployed to GitHub Pages by the workflow in `.github/workflows/deploy.yml` whenever a commit is pushed to `main`.
+`netlify.toml` sets the build command to `npm run build` and the publish directory to `dist`. Import this repository in Netlify and deploy the `main` branch; Netlify will apply those settings automatically.
 
 ## Run locally
 
