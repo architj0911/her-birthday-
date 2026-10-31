@@ -1,18 +1,34 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Cake, Heart, Mail, Monitor, Music2, Star, X, Minus, Square, Sparkles, Image, Gift, House, Wifi, Volume2 } from 'lucide-react';
 import { birthdayContent as c } from './data/birthdayContent';
 
 type View = 'HOME'|'OUR LITTLE WORLD'|'MEMORIES'|'THINGS I LOVE'|'LOVE LETTER'|'FINAL SURPRISE';
 const views: View[] = ['HOME','OUR LITTLE WORLD','MEMORIES','THINGS I LOVE','LOVE LETTER','FINAL SURPRISE'];
 const icons = [House,Monitor,Image,Heart,Mail,Gift];
+const birthdayTune: [number, number][] = [
+ [392, .38],[392, .22],[440, .62],[392, .62],[523.25, .62],[493.88, 1.05],
+ [392, .38],[392, .22],[440, .62],[392, .62],[587.33, .62],[523.25, 1.05],
+ [392, .38],[392, .22],[783.99, .62],[659.25, .62],[523.25, .62],[493.88, .62],[440, 1.05],
+ [698.46, .38],[698.46, .22],[659.25, .62],[523.25, .62],[587.33, .62],[523.25, 1.2]
+];
 function Bear({ heart=true }: {heart?: boolean}) { return <div className="bear-wrap" aria-label="pixel bear mascot"><div className="bear"><i className="ear l"/><i className="ear r"/><i className="face"><b/><b/><em/></i><i className="body"/><i className="arm l"/><i className="arm r"/><i className="foot l"/><i className="foot r"/>{heart&&<span className="bear-heart">♥</span>}</div><span className="bear-shadow"/></div> }
 function App(){
- const [view,setView]=useState<View>('HOME'),[letter,setLetter]=useState(false),[typed,setTyped]=useState(''),[confetti,setConfetti]=useState(false),[clock,setClock]=useState(new Date()),[launcher,setLauncher]=useState(false),[notice,setNotice]=useState('');
+ const [view,setView]=useState<View>('HOME'),[letter,setLetter]=useState(false),[typed,setTyped]=useState(''),[confetti,setConfetti]=useState(false),[clock,setClock]=useState(new Date()),[launcher,setLauncher]=useState(false),[notice,setNotice]=useState(''),[musicPlaying,setMusicPlaying]=useState(false);
+ const musicRef=useRef<{context:AudioContext;timer:number}|null>(null);
  useEffect(()=>{const t=setInterval(()=>setClock(new Date()),1000);return()=>clearInterval(t)},[]);
+ useEffect(()=>()=>{const active=musicRef.current;if(active){window.clearTimeout(active.timer);void active.context.close();musicRef.current=null}},[]);
  useEffect(()=>{if(!letter)return;setTyped('');let i=0;const t=setInterval(()=>{i++;setTyped(c.letter.slice(0,i));if(i>=c.letter.length)clearInterval(t)},22);return()=>clearInterval(t)},[letter]);
  const open=(v:View)=>{setView(v);setLauncher(false);if(v==='LOVE LETTER')setLetter(false)};
  const celebrate=()=>{setConfetti(true);setTimeout(()=>setConfetti(false),5000)};
  const openLetter=()=>{setLetter(true);setTimeout(()=>document.querySelector('.letter-window')?.scrollIntoView({behavior:'smooth',block:'center'}),80)};
+ const toggleBirthdayMusic=async()=>{
+   if(musicRef.current){const active=musicRef.current;musicRef.current=null;window.clearTimeout(active.timer);void active.context.close();setMusicPlaying(false);setNotice('Birthday tune stopped ♫');return}
+   try{
+     const context=new AudioContext();await context.resume();let start=context.currentTime+.04;
+     for(const [frequency,duration] of birthdayTune){const oscillator=context.createOscillator();const gain=context.createGain();oscillator.type='square';oscillator.frequency.setValueAtTime(frequency,start);gain.gain.setValueAtTime(.0001,start);gain.gain.linearRampToValueAtTime(.045,start+.018);gain.gain.exponentialRampToValueAtTime(.0001,start+duration-.025);oscillator.connect(gain);gain.connect(context.destination);oscillator.start(start);oscillator.stop(start+duration);start+=duration+.035}
+     const timer=window.setTimeout(()=>{if(musicRef.current?.context===context){musicRef.current=null;setMusicPlaying(false);void context.close()}},Math.ceil((start-context.currentTime)*1000));musicRef.current={context,timer};setMusicPlaying(true);setNotice('♫ Happy Birthday is playing!');
+   }catch{setNotice('Your browser could not start the birthday tune. Tap Music to try again.')}
+ };
  return <main className="desktop">
    <div className="wallpaper-grid"/><div className="floaties" aria-hidden="true">{['✦','♡','✧','♥','✦','♡','✧','♥','✦','♡','✧','♥'].map((x,i)=><span key={i} style={{left:`${(i*17+6)%97}%`,top:`${(i*29+4)%90}%`,animationDelay:`${i*.65}s`}}>{x}</span>)}</div>
    <header className="top-strip"><span><span className="online-dot"/> WELCOME TO YOUR LITTLE WORLD</span><span className="top-right"><Wifi size={14}/> connected with love</span></header>
@@ -23,7 +39,7 @@ function App(){
    <section className="main-panel"><div className="panel-top"><span>♥ {view.toLowerCase()} </span><span className="panel-id">FILE 01 / 06</span></div><div className="view-content" key={view}>{view==='HOME'&&<Home onCelebrate={celebrate} go={open}/ >}{view==='OUR LITTLE WORLD'&&<World/>}{view==='MEMORIES'&&<Memories/>}{view==='THINGS I LOVE'&&<LoveNotes/>}{view==='LOVE LETTER'&&<LoveLetter open={openLetter} letter={letter} typed={typed}/ >}{view==='FINAL SURPRISE'&&<Surprise celebrate={celebrate}/>}</div><div className="panel-foot"><span>♥ made just for you</span><span>EST. IN OUR LITTLE WORLD ✦</span></div></section>
    <nav className="side-nav" aria-label="Birthday sections"><div className="nav-caption">EXPLORE</div>{views.map((v,i)=>{const I=icons[i];return <button key={v} onClick={()=>open(v)} className={view===v?'active':''}><I size={16}/><span>{v}</span><span className="nav-arrow">›</span></button>})}<div className="nav-note"><span className="pixel-heart">♥</span><small>made with<br/>lots of love</small></div></nav>
    </div><div className="window-status"><span><span className="online-dot"/> YOUR LITTLE WORLD IS ONLINE</span><span>✿ 100% LOVE</span></div></section>
-   <footer className="taskbar"><button className="start" onClick={()=>setLauncher(!launcher)}><span>✿</span> Start</button><div className="task-app"><span>♡</span> Birthday.exe</div><button className="task-shortcut" title="Home" onClick={()=>open('HOME')}><House size={17}/></button><button className="task-shortcut" title="Music" onClick={()=>setNotice('Imagine your favourite song playing here ♫')}><Music2 size={17}/></button><div className="task-spacer"/><div className="system-tray"><Volume2 size={15}/><Wifi size={15}/><span className="clock">{clock.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</span><span className="date">{clock.toLocaleDateString([], {month:'short',day:'numeric'})}</span></div></footer>
+   <footer className="taskbar"><button className="start" onClick={()=>setLauncher(!launcher)}><span>✿</span> Start</button><div className="task-app"><span>♡</span> Birthday.exe</div><button className="task-shortcut" title="Home" aria-label="Home" onClick={()=>open('HOME')}><House size={17}/></button><button className={`task-shortcut ${musicPlaying?'music-playing':''}`} title={musicPlaying?'Stop birthday tune':'Play Happy Birthday'} aria-label={musicPlaying?'Stop birthday tune':'Play Happy Birthday'} aria-pressed={musicPlaying} onClick={toggleBirthdayMusic}><Music2 size={17}/></button><div className="task-spacer"/><div className="system-tray"><Volume2 size={15}/><Wifi size={15}/><span className="clock">{clock.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</span><span className="date">{clock.toLocaleDateString([], {month:'short',day:'numeric'})}</span></div></footer>
    {launcher&&<div className="launcher"><div className="launcher-head">✿ YOUR LITTLE WORLD</div>{views.map((v,i)=>{const I=icons[i];return <button key={v} onClick={()=>open(v)}><I size={17}/>{v}</button>})}</div>}
    {notice&&<div className="toast"><span>✿</span>{notice}<button onClick={()=>setNotice('')} aria-label="Dismiss"><X size={15}/></button></div>}
    {confetti&&<div className="confetti" aria-hidden="true">{Array.from({length:90},(_,i)=><i key={i} style={{left:`${(i*37)%100}%`,animationDelay:`${(i%17)*.08}s`,background:['#f44d9c','#34cde4','#ffe45c','#ad88ff'][i%4]}}/>)}</div>}
